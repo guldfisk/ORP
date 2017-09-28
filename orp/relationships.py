@@ -65,7 +65,7 @@ class AbstractCollection(metaclass=ABCMeta):
 		pass
 
 class Many(Relationship):
-	def __init__(self, owner, target_field: str, container_type: t.Type[AbstractCollection] = set):
+	def __init__(self, owner, target_field: str, container_type = set):
 		super().__init__(owner, target_field)
 		self._many = container_type()
 	def join_with(self, one: T):
