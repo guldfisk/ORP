@@ -1,9 +1,18 @@
 import pickle
+from abc import ABCMeta, abstractmethod
 
-class Persistor(object):
+class Persistor(metaclass=ABCMeta):
+	@abstractmethod
+	def save(self, obj):
+		pass
+	@abstractmethod
+	def load(self):
+		pass
+
+class PicklePersistor(Persistor):
 	def __init__(self, path: str):
 		self.path = path
-	def persist(self, obj: object):
+	def save(self, obj: object):
 		with open(self.path, 'wb') as f:
 			pickle.dump(obj, f)
 	def load(self):
