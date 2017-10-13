@@ -101,21 +101,12 @@ class One(Relationship):
 		self._one = many
 	def disjoint_with(self, many: T):
 		self._one = None
-	def set(self, many: T):
-		if self._one is not None:
+	def set(self, many: T, ignore_previous_value = False):
+		if self._one is not None and not ignore_previous_value:
 			getattr(self.from_owner(self._one), self.target_field).disjoint_with(self.owner)
 		if many is not None:
 			getattr(self.from_owner(many), self.target_field).join_with(self.owner)
 		self.join_with(many)
-
-class DummyOne(object):
-	def __init__(self, initial_value: T = None):
-		self._one = None
-		self.set(initial_value)
-	def get(self) -> T:
-		return self._one
-	def set(self, value: T):
-		self._one = value
 
 class OneDescriptor(object):
 	def __init__(self, field: str):
