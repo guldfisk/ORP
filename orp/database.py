@@ -54,7 +54,7 @@ class ForeignKey(Key):
 		self._foreign_target = foreign_target
 	@property
 	@abstractmethod
-	def relationship(self) -> t.Type:
+	def relationship(self):
 		pass
 	@property
 	def foreign_target(self):
@@ -62,7 +62,7 @@ class ForeignKey(Key):
 
 class ForeignOne(ForeignKey):
 	@property
-	def relationship(self) -> t.Type:
+	def relationship(self):
 		return One
 
 class Model(object):
