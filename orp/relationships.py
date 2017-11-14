@@ -1,8 +1,7 @@
 import typing as t
 
 from abc import ABCMeta, abstractmethod
-
-T = t.TypeVar('T')
+from orp import database as _database
 
 class Relationship(object):
 	def __init__(self, owner, target_field: str):
@@ -68,17 +67,27 @@ class Many(Relationship):
 	def __init__(self, owner, target_field: str, container_type = set):
 		super().__init__(owner, target_field)
 		self._many = container_type()
-	def join_with(self, one: T):
+		if isinstance(self._many, dict):
+			self.join_with = self._join_with_dict
+			self.disjoint_with = self._disjoint_with_dict
+		else:
+			self.join_with = self._join_with
+			self.disjoint_with = self._disjoint_with
+	def _join_with(self, one: '_database.Model'):
 		self._many.add(one)
-	def add(self, one: T):
+	def _join_with_dict(self, one: '_database.Model'):
+		self._many[one.primary_key] = one
+	def add(self, one: '_database.Model'):
 		getattr(self.from_owner(one), self.target_field).join_with(self.owner)
 		self.join_with(one)
-	def update(self, other: t.Iterable[T]):
+	def update(self, other: t.Iterable['_database.Model']):
 		for item in other:
 			self.add(item)
-	def disjoint_with(self, one: T):
+	def _disjoint_with(self, one: '_database.Model'):
 		self._many.remove(one)
-	def remove(self, one: T):
+	def _disjoint_with_dict(self, one: '_database.Model'):
+		del self._many[one.primary_key]
+	def remove(self, one: '_database.Model'):
 		getattr(self.from_owner(one), self.target_field).join_with(None)
 		self.disjoint_with(one)
 	def __repr__(self):
@@ -91,17 +100,17 @@ class Many(Relationship):
 		return self._many.__len__()
 
 class One(Relationship):
-	def __init__(self, owner, target_field: str, initial_value: T = None):
+	def __init__(self, owner, target_field: str, initial_value: '_database.Model' = None):
 		super().__init__(owner, target_field)
 		self._one = None
 		self.set(initial_value)
-	def get(self) -> T:
+	def get(self) -> '_database.Model':
 		return self._one
-	def join_with(self, many: T):
+	def join_with(self, many: '_database.Model'):
 		self._one = many
-	def disjoint_with(self, many: T):
+	def disjoint_with(self, many: '_database.Model'):
 		self._one = None
-	def set(self, many: T, ignore_previous_value = False):
+	def set(self, many: '_database.Model', ignore_previous_value = False):
 		if self._one is not None and not ignore_previous_value:
 			getattr(self.from_owner(self._one), self.target_field).disjoint_with(self.owner)
 		if many is not None:

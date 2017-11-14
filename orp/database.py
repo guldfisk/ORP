@@ -151,20 +151,6 @@ class Model(object):
 			self.__dict__,
 		)
 
-class Table(object):
-	def __init__(self):
-		self._dict = dict()
+class Table(dict):
 	def insert(self, item):
-		self._dict.__setitem__(item.primary_key, item)
-	def values(self):
-		return self._dict.values()
-	def __getitem__(self, item):
-		return self._dict.__getitem__(item)
-	def __contains__(self, item):
-		return self._dict.__contains__(item)
-	def __repr__(self):
-		return self._dict.__repr__()
-	def __len__(self):
-		return self._dict.__len__()
-	def __iter__(self):
-		return self._dict.__iter__()
+		self.__setitem__(item.primary_key, item)
