@@ -3,7 +3,7 @@ import typing as t
 from abc import abstractmethod
 from itertools import chain
 
-from orp.relationships import One
+from orp import relationships as _relationships
 
 class Incrementer(object):
 	def __init__(self, initial_value: int = 0):
@@ -63,7 +63,7 @@ class ForeignKey(Key):
 class ForeignOne(ForeignKey):
 	@property
 	def relationship(self):
-		return One
+		return _relationships.One
 
 class Model(object):
 	primary_key = PrimaryKey(
