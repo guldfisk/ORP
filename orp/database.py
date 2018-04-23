@@ -5,15 +5,20 @@ from itertools import chain
 
 from orp import relationships as _relationships
 
+
 class Incrementer(object):
+	
 	def __init__(self, initial_value: int = 0):
 		self.value = initial_value
+	
 	def __call__(self):
 		value = self.value
 		self.value = value + 1
 		return value
 
+
 class Key(object):
+	
 	def __init__(
 		self,
 		target: str,
@@ -23,22 +28,28 @@ class Key(object):
 		self._target = target
 		self.calc_value = calc_value
 		self.input_values = input_values
+	
 	@property
 	def target(self):
 		return self._target
+	
 	@property
 	def private_target(self):
 		return '_'+self._target
+	
 	def __repr__(self):
 		return self._target
 
+
 class PrimaryKey(object):
+	
 	def __init__(self, keys: t.Union[t.Tuple[t.Union[Key, str], ...], Key, str]):
 		self.key = (
 			tuple(item if isinstance(item, Key) else Key(item) for item in keys)
 			if isinstance(keys, tuple) else
 			keys if isinstance(keys, Key) else Key(keys)
 		)
+	
 	def __get__(self, instance, owner):
 		if instance is None:
 			return self.key
@@ -48,28 +59,36 @@ class PrimaryKey(object):
 			)
 		return getattr(instance, self.key.target)
 
+
 class ForeignKey(Key):
+	
 	def __init__(self, target: str, foreign_target: str):
 		super().__init__(target)
 		self._foreign_target = foreign_target
+	
 	@property
 	@abstractmethod
 	def relationship(self):
 		pass
+	
 	@property
 	def foreign_target(self):
 		return self._foreign_target
 
+
 class ForeignOne(ForeignKey):
+	
 	@property
 	def relationship(self):
 		return _relationships.One
+
 
 class Model(object):
 	primary_key = PrimaryKey(
 		Key('id', calc_value=lambda k, o, m: o._incrementer()),
 	)
 	_incrementer = Incrementer()
+	
 	def __new__(cls, *args, **kwargs):
 		keys = cls.primary_key if isinstance(cls.primary_key, tuple) else (cls.primary_key,)
 		for key, arg in zip(
@@ -99,6 +118,7 @@ class Model(object):
 						ignore_previous_value = True,
 					)
 		return obj
+	
 	@classmethod
 	def _unlinked_foreign_new(cls, key_map):
 		obj = super().__new__(cls)
@@ -123,15 +143,23 @@ class Model(object):
 				except KeyError:
 					setattr(obj, key.private_target, key.calc_value(key, obj, key_map))
 		return obj
+	
 	def __eq__(self, other):
 		return isinstance(other, self.__class__) and self.primary_key == other.primary_key
+	
 	def __hash__(self):
 		return hash((self.__class__, self.primary_key))
+	
 	def __repr__(self):
 		return '{}({})'.format(self.__class__.__name__, self.primary_key)
+	
+	def test(self):
+		print(self.primary_key, type(self.primary_key))
+	
 	@classmethod
 	def _new_with_primary_key(cls, values):
 		return cls._unlinked_foreign_new(values)
+	
 	def __reduce__(self):
 		return (
 			self._new_with_primary_key,
@@ -151,6 +179,8 @@ class Model(object):
 			self.__dict__,
 		)
 
+
 class Table(dict):
+	
 	def insert(self, item):
 		self.__setitem__(item.primary_key, item)
