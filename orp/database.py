@@ -91,6 +91,7 @@ class Model(object):
 	
 	def __new__(cls, *args, **kwargs):
 		keys = cls.primary_key if isinstance(cls.primary_key, tuple) else (cls.primary_key,)
+
 		for key, arg in zip(
 			chain(
 				*(
@@ -101,10 +102,12 @@ class Model(object):
 					if filtered_key.calc_value is None or filtered_key.input_values is not None
 				)
 			),
-			args
+			args,
 		):
 			kwargs[key] = arg
+
 		obj = cls._unlinked_foreign_new(kwargs)
+
 		for key in keys:
 			if isinstance(key, ForeignKey):
 				try:
@@ -117,6 +120,7 @@ class Model(object):
 						key.calc_value(key, obj, kwargs),
 						ignore_previous_value = True,
 					)
+
 		return obj
 	
 	@classmethod
@@ -152,10 +156,7 @@ class Model(object):
 	
 	def __repr__(self):
 		return '{}({})'.format(self.__class__.__name__, self.primary_key)
-	
-	def test(self):
-		print(self.primary_key, type(self.primary_key))
-	
+
 	@classmethod
 	def _new_with_primary_key(cls, values):
 		return cls._unlinked_foreign_new(values)

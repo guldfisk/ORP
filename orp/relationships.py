@@ -1,9 +1,12 @@
 import typing as t
 
-from orp import database as _database
+from abc import ABCMeta, abstractmethod
 
 
-class Relationship(object):
+T = t.TypeVar('T')
+
+
+class Relationship(t.Generic[T], metaclass=ABCMeta):
 
 	def __init__(self, owner, target_field: str):
 		self._owner = owner
@@ -17,127 +20,82 @@ class Relationship(object):
 	def from_owner(owner):
 		return owner
 
+	@abstractmethod
+	def join_with(self, one: T) -> None:
+		pass
 
-# class Gathering(object):
-# 	def __init__(self):
-# 		self.members = set()
-# 	def join(self, member):
-# 		self.members.add(member)
-# 	def leave(self, member):
-# 		self.members.remove(member)
-#
-# class Group(Relationship):
-# 	def __init__(self, owner, target_field: str, initial_group=None):
-# 		super().__init__(owner, target_field)
-# 		self._group = None
-# 		if initial_group is not None:
-# 			self.join(initial_group)
-# 	def join_no_cascade(self, group):
-# 		self._group = group
-# 		group.join(self.owner)
-# 	def join(self, group):
-# 		other_group = getattr(self.from_owner(group), self.target_field)
-# 		if other_group._group is None:
-# 			other_group.join_no_cascade(Gathering())
-# 		if self._group is not None:
-# 			self._group.leave(self.owner)
-# 		self.join_no_cascade(other_group._group)
-# 	def leave(self):
-# 		self._group.leave(self.owner)
-# 		self._group = None
-# 	def __repr__(self):
-# 		if self._group is None:
-# 			return set().__repr__()
-# 		return (self._group.members - {self.owner}).__repr__()
-# 	def __iter__(self):
-# 		if self._group is not None:
-# 			return (self._group.members - {self.owner}).__iter__()
-
-# class AbstractCollection(metaclass=ABCMeta):
-#
-# 	@abstractmethod
-# 	def add(self, element):
-# 		pass
-#
-# 	@abstractmethod
-# 	def remove(self, element):
-# 		pass
-#
-# 	@abstractmethod
-# 	def __iter__(self):
-# 		pass
-#
-# 	@abstractmethod
-# 	def __len__(self):
-# 		pass
+	@abstractmethod
+	def disjoint_with(self, one: T) -> None:
+		pass
 
 
-class Many(Relationship):
+class Many(Relationship, t.Generic[T]):
 
 	def __init__(self, owner, target_field: str, container_type = set):
 		super().__init__(owner, target_field)
-		self._many = container_type()
+
+		self._many = container_type() #type: container_type
 		if isinstance(self._many, dict):
 			self.join_with = self._join_with_dict
 			self.disjoint_with = self._disjoint_with_dict
-		else:
-			self.join_with = self._join_with
-			self.disjoint_with = self._disjoint_with
 
-	def _join_with(self, one: '_database.Model'):
+	def join_with(self, one: T):
 		self._many.add(one)
 
-	def _join_with_dict(self, one: '_database.Model'):
+	def _join_with_dict(self, one: T):
 		self._many[one.primary_key] = one
 
-	def add(self, one: '_database.Model'):
+	def add(self, one: T):
 		getattr(self.from_owner(one), self.target_field).join_with(self.owner)
 		self.join_with(one)
 
-	def update(self, other: t.Iterable['_database.Model']):
+	def update(self, other: t.Iterable[T]):
 		for item in other:
 			self.add(item)
 
-	def _disjoint_with(self, one: '_database.Model'):
+	def disjoint_with(self, one: T):
 		self._many.remove(one)
 
-	def _disjoint_with_dict(self, one: '_database.Model'):
+	def _disjoint_with_dict(self, one: T):
 		del self._many[one.primary_key]
 
-	def remove(self, one: '_database.Model'):
+	def remove(self, one: T):
 		getattr(self.from_owner(one), self.target_field).join_with(None)
 		self.disjoint_with(one)
 
-	def __repr__(self):
+	def __repr__(self) -> str:
 		return self._many.__repr__()
 
-	def __iter__(self):
+	def __iter__(self) -> t.Iterator[T]:
 		return self._many.__iter__()
 
-	def __bool__(self):
+	def __bool__(self) -> bool:
 		return bool(self._many)
 
-	def __len__(self):
+	def __len__(self) -> int:
 		return self._many.__len__()
 
+	def __contains__(self, item):
+		return self._many.__contains__(item)
 
-class One(Relationship):
 
-	def __init__(self, owner, target_field: str, initial_value: '_database.Model' = None):
+class One(Relationship, t.Generic[T]):
+
+	def __init__(self, owner, target_field: str, initial_value: T = None):
 		super().__init__(owner, target_field)
 		self._one = None
 		self.set(initial_value)
 
-	def get(self) -> '_database.Model':
+	def get(self) -> T:
 		return self._one
 
-	def join_with(self, many: '_database.Model'):
+	def join_with(self, many: T):
 		self._one = many
 
-	def disjoint_with(self, many: '_database.Model'):
+	def disjoint_with(self, many: T):
 		self._one = None
 
-	def set(self, many: '_database.Model', ignore_previous_value = False):
+	def set(self, many: T, ignore_previous_value = False):
 		if self._one is not None and not ignore_previous_value:
 			getattr(self.from_owner(self._one), self.target_field).disjoint_with(self.owner)
 		if many is not None:
@@ -145,13 +103,13 @@ class One(Relationship):
 		self.join_with(many)
 
 
-class OneDescriptor(object):
+class OneDescriptor(t.Generic[T]):
 
 	def __init__(self, field: str):
 		self.field = field
 
-	def __get__(self, instance, owner):
+	def __get__(self, instance, owner) -> T:
 		return getattr(instance, self.field).get()
 
-	def __set__(self, instance, value):
+	def __set__(self, instance, value: T):
 		getattr(instance, self.field).set(value)
