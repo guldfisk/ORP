@@ -29,21 +29,14 @@ class Relationship(t.Generic[T], metaclass=ABCMeta):
 		pass
 
 
-class Many(Relationship, t.Generic[T]):
+class Many(Relationship, t.AbstractSet[T]):
 
-	def __init__(self, owner, target_field: str, container_type = set):
+	def __init__(self, owner, target_field: str):
 		super().__init__(owner, target_field)
-
-		self._many = container_type() #type: container_type
-		if isinstance(self._many, dict):
-			self.join_with = self._join_with_dict
-			self.disjoint_with = self._disjoint_with_dict
+		self._many = set() #type: t.Set[T]
 
 	def join_with(self, one: T):
 		self._many.add(one)
-
-	def _join_with_dict(self, one: T):
-		self._many[one.primary_key] = one
 
 	def add(self, one: T):
 		getattr(self.from_owner(one), self.target_field).join_with(self.owner)
@@ -55,9 +48,6 @@ class Many(Relationship, t.Generic[T]):
 
 	def disjoint_with(self, one: T):
 		self._many.remove(one)
-
-	def _disjoint_with_dict(self, one: T):
-		del self._many[one.primary_key]
 
 	def remove(self, one: T):
 		getattr(self.from_owner(one), self.target_field).join_with(None)
@@ -75,8 +65,58 @@ class Many(Relationship, t.Generic[T]):
 	def __len__(self) -> int:
 		return self._many.__len__()
 
-	def __contains__(self, item):
+	def __contains__(self, item) -> bool:
 		return self._many.__contains__(item)
+
+	def __sub__(self, other) -> t.AbstractSet[T]:
+		return self._many.__sub__(other)
+
+	def __or__(self, other) -> t.AbstractSet:
+		return self._many.__or__(other)
+
+
+class ListMany(Relationship, t.List[T]):
+
+	def __init__(self, owner, target_field: str):
+		super().__init__(owner, target_field)
+		self._many = [] #type: t.List[T]
+
+	def join_with(self, one: T):
+		self._many.append(one)
+
+	def add(self, one: T):
+		getattr(self.from_owner(one), self.target_field).join_with(self.owner)
+		self.join_with(one)
+
+	def disjoint_with(self, one: T):
+		self._many.remove(one)
+
+	def remove(self, one: T):
+		getattr(self.from_owner(one), self.target_field).join_with(None)
+		self.disjoint_with(one)
+
+	def clear(self) -> None:
+		for item in list(self._many):
+			self.remove(item)
+
+	def append(self, one: T) -> None:
+		self.add(one)
+
+	def extend(self, ones: t.Iterable[T]) -> None:
+		for one in ones:
+			self.add(one)
+
+	def __len__(self) -> int:
+		return self._many.__len__()
+
+	def __iter__(self) -> t.Iterator[T]:
+		return self._many.__iter__()
+
+	def __getitem__(self, i: int) -> T:
+		return self._many.__getitem__(i)
+
+	def __contains__(self, one: T) -> bool:
+		return self._many.__contains__(one)
 
 
 class One(Relationship, t.Generic[T]):
