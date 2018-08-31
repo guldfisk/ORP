@@ -53,10 +53,12 @@ class PrimaryKey(object):
 	def __get__(self, instance, owner):
 		if instance is None:
 			return self.key
+
 		if isinstance(self.key, tuple):
 			return tuple(
 				getattr(instance, key.target) for key in self.key
 			)
+
 		return getattr(instance, self.key.target)
 
 
@@ -85,12 +87,16 @@ class ForeignOne(ForeignKey):
 
 class Model(object):
 	primary_key = PrimaryKey(
-		Key('id', calc_value=lambda k, o, m: o._incrementer()),
+		Key('id', calc_value=lambda k, o, m: o._INCREMENTER()),
 	)
-	_incrementer = Incrementer()
+	_INCREMENTER = Incrementer()
 	
 	def __new__(cls, *args, **kwargs):
-		keys = cls.primary_key if isinstance(cls.primary_key, tuple) else (cls.primary_key,)
+		keys = (
+			cls.primary_key
+			if isinstance(cls.primary_key, tuple) else
+			(cls.primary_key,)
+		)
 
 		for key, arg in zip(
 			chain(
@@ -126,7 +132,12 @@ class Model(object):
 	@classmethod
 	def _unlinked_foreign_new(cls, key_map):
 		obj = super().__new__(cls)
-		keys = cls.primary_key if isinstance(cls.primary_key, tuple) else (cls.primary_key,)
+		keys = (
+			cls.primary_key
+			if isinstance(cls.primary_key, tuple) else
+			(cls.primary_key,)
+		)
+
 		for key in keys:
 			if isinstance(key, ForeignOne):
 				setattr(
@@ -146,16 +157,20 @@ class Model(object):
 					setattr(obj, key.private_target, key_map[key.target])
 				except KeyError:
 					setattr(obj, key.private_target, key.calc_value(key, obj, key_map))
+
 		return obj
 	
 	def __eq__(self, other):
-		return isinstance(other, self.__class__) and self.primary_key == other.primary_key
+		return (
+			isinstance(other, self.__class__)
+			and self.primary_key == other.primary_key
+		)
 	
 	def __hash__(self):
 		return hash((self.__class__, self.primary_key))
 	
 	def __repr__(self):
-		return '{}({})'.format(self.__class__.__name__, self.primary_key)
+		return f'{self.__class__.__name__}({self.primary_key})'
 
 	@classmethod
 	def _new_with_primary_key(cls, values):
@@ -181,7 +196,19 @@ class Model(object):
 		)
 
 
-class Table(dict):
+class Table(t.Dict):
 	
 	def insert(self, item):
 		self.__setitem__(item.primary_key, item)
+
+
+class Database(object):
+
+	def __init__(self, tables: t.Dict[t.Type[Model], Table]):
+		self._tables = tables
+
+	def __getitem__(self, model: t.Type[Model]) -> Table:
+		return self._tables.__getitem__(model)
+
+	def __iter__(self) -> t.Iterable[Table]:
+		return self._tables.values()

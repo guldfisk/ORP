@@ -138,8 +138,10 @@ class One(Relationship, t.Generic[T]):
 	def set(self, many: T, ignore_previous_value = False):
 		if self._one is not None and not ignore_previous_value:
 			getattr(self.from_owner(self._one), self.target_field).disjoint_with(self.owner)
+
 		if many is not None:
 			getattr(self.from_owner(many), self.target_field).join_with(self.owner)
+
 		self.join_with(many)
 
 
