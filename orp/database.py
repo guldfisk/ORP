@@ -2,6 +2,8 @@ import typing as t
 
 from abc import abstractmethod
 from itertools import chain
+import pickle
+import hashlib
 
 from orp import relationships as _relationships
 
@@ -172,13 +174,13 @@ class Model(object):
 	def __repr__(self):
 		return f'{self.__class__.__name__}({self.primary_key})'
 
-	@classmethod
-	def _new_with_primary_key(cls, values):
-		return cls._unlinked_foreign_new(values)
+	# @classmethod
+	# def _new_with_primary_key(cls, values):
+	# 	return cls._unlinked_foreign_new(values)
 	
 	def __reduce__(self):
 		return (
-			self._new_with_primary_key,
+			self._unlinked_foreign_new,
 			(
 				{
 					key.target:
@@ -206,6 +208,16 @@ class Database(object):
 
 	def __init__(self, tables: t.Dict[t.Type[Model], Table]):
 		self._tables = tables
+
+		hasher = hashlib.sha256()
+		for table in tables:
+			hasher.update(pickle.dumps(table))
+
+		self._checksum = hasher.digest()
+
+	@property
+	def checksum(self) -> t.ByteString:
+		return self._checksum
 
 	def __getitem__(self, model: t.Type[Model]) -> Table:
 		return self._tables.__getitem__(model)
