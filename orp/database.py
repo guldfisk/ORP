@@ -176,7 +176,7 @@ class Model(object):
 
 	# @classmethod
 	# def _new_with_primary_key(cls, values):
-	# 	return cls._unlinked_foreign_new(values)
+	# 	return cls._unlinked_foreign_new_unlinked_foreign_new(values)
 	
 	def __reduce__(self):
 		return (
@@ -210,8 +210,21 @@ class Database(object):
 		self._tables = tables
 
 		hasher = hashlib.sha256()
-		for table in tables:
-			hasher.update(pickle.dumps(table))
+		for model_type_name, table in sorted(
+			(
+				(model_type.__name__, table)
+				for model_type, table in
+				tables.items()
+			)
+		):
+			hasher.update(
+				pickle.dumps(
+					(
+						model_type_name,
+						sorted(table.keys()),
+					)
+				)
+			)
 
 		self._checksum = hasher.digest()
 
