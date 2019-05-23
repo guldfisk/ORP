@@ -157,6 +157,7 @@ class Model(object):
 			else:
 				try:
 					setattr(obj, key.private_target, key_map[key.target])
+
 				except KeyError:
 					setattr(obj, key.private_target, key.calc_value(key, obj, key_map))
 
@@ -176,7 +177,7 @@ class Model(object):
 
 	# @classmethod
 	# def _new_with_primary_key(cls, values):
-	# 	return cls._unlinked_foreign_new_unlinked_foreign_new(values)
+	# 	return cls._unlinked_foreign_new(values)
 	
 	def __reduce__(self):
 		return (

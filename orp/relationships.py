@@ -28,6 +28,13 @@ class Relationship(t.Generic[T], metaclass=ABCMeta):
 	def disjoint_with(self, one: T) -> None:
 		pass
 
+	@classmethod
+	def _create_new(cls):
+		return super().__new__(cls)
+
+	def __reduce__(self) -> tuple:
+		return self._create_new, (), self.__dict__
+
 
 class Many(Relationship, t.AbstractSet[T]):
 
