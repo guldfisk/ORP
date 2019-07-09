@@ -238,3 +238,9 @@ class Database(object):
 
 	def __iter__(self) -> t.Iterable[Table]:
 		return self._tables.values()
+
+	def __copy__(self):
+		return self
+
+	def __deepcopy__(self, memodict={}):
+		return self
