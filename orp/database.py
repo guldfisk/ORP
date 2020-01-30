@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import typing as t
 
 from abc import abstractmethod
@@ -24,7 +26,7 @@ class Key(object):
     def __init__(
         self,
         target: str,
-        calc_value: 't.Callable[[Key, Model, dict], t.Any]' = None,
+        calc_value: t.Callable[[Key, Model, dict], t.Any] = None,
         input_values: t.Iterable[str] = None,
     ):
         self._target = target
@@ -37,7 +39,7 @@ class Key(object):
 
     @property
     def private_target(self):
-        return '_'+self._target
+        return '_' + self._target
 
     def __repr__(self):
         return self._target
@@ -89,7 +91,7 @@ class ForeignOne(ForeignKey):
 
 class Model(object):
     primary_key = PrimaryKey(
-        Key('id', calc_value=lambda k, o, m: o._INCREMENTER()),
+        Key('id', calc_value = lambda k, o, m: o._INCREMENTER()),
     )
     _INCREMENTER = Incrementer()
 
