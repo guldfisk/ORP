@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import datetime
 import typing as t
+import pickle
+import hashlib
 
 from abc import abstractmethod
 from itertools import chain
-import pickle
-import hashlib
 
 from orp import relationships as _relationships
 
@@ -209,8 +210,9 @@ class Table(t.Dict[K, V]):
 
 class Database(object):
 
-    def __init__(self, tables: t.Dict[t.Type[Model], Table]):
+    def __init__(self, tables: t.Dict[t.Type[Model], Table], created_at: t.Optional[datetime.datetime] = None):
         self._tables = tables
+        self._created_at = datetime.datetime.now() if created_at is None else created_at
 
         hasher = hashlib.sha256()
         for model_type_name, table in sorted(
@@ -230,6 +232,10 @@ class Database(object):
             )
 
         self._checksum = hasher.digest()
+
+    @property
+    def created_at(self) -> datetime.datetime:
+        return self._created_at
 
     @property
     def checksum(self) -> t.ByteString:
