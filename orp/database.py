@@ -90,6 +90,38 @@ class ForeignOne(ForeignKey):
         return _relationships.One
 
 
+def _unlinked_foreign_new(cls, key_map):
+    obj = object.__new__(cls)
+    keys = (
+        cls.primary_key
+        if isinstance(cls.primary_key, tuple) else
+        (cls.primary_key,)
+    )
+
+    for key in keys:
+        if isinstance(key, ForeignOne):
+            setattr(
+                obj,
+                key.private_target,
+                key.relationship(
+                    obj,
+                    key.foreign_target,
+                )
+            )
+            try:
+                getattr(obj, key.private_target).join_with(key_map[key.target])
+            except KeyError:
+                getattr(obj, key.private_target).join_with(key.calc_value(key, obj, key_map))
+        else:
+            try:
+                setattr(obj, key.private_target, key_map[key.target])
+
+            except KeyError:
+                setattr(obj, key.private_target, key.calc_value(key, obj, key_map))
+
+    return obj
+
+
 class Model(object):
     primary_key = PrimaryKey(
         Key('id', calc_value = lambda k, o, m: o._INCREMENTER()),
@@ -117,7 +149,7 @@ class Model(object):
         ):
             kwargs[key] = arg
 
-        obj = cls._unlinked_foreign_new(kwargs)
+        obj = _unlinked_foreign_new(cls, kwargs)
 
         for key in keys:
             if isinstance(key, ForeignKey):
@@ -131,38 +163,6 @@ class Model(object):
                         key.calc_value(key, obj, kwargs),
                         ignore_previous_value = True,
                     )
-
-        return obj
-
-    @classmethod
-    def _unlinked_foreign_new(cls, key_map):
-        obj = super().__new__(cls)
-        keys = (
-            cls.primary_key
-            if isinstance(cls.primary_key, tuple) else
-            (cls.primary_key,)
-        )
-
-        for key in keys:
-            if isinstance(key, ForeignOne):
-                setattr(
-                    obj,
-                    key.private_target,
-                    key.relationship(
-                        obj,
-                        key.foreign_target,
-                    )
-                )
-                try:
-                    getattr(obj, key.private_target).join_with(key_map[key.target])
-                except KeyError:
-                    getattr(obj, key.private_target).join_with(key.calc_value(key, obj, key_map))
-            else:
-                try:
-                    setattr(obj, key.private_target, key_map[key.target])
-
-                except KeyError:
-                    setattr(obj, key.private_target, key.calc_value(key, obj, key_map))
 
         return obj
 
@@ -180,18 +180,17 @@ class Model(object):
 
     def __reduce__(self):
         return (
-            self._unlinked_foreign_new,
+            _unlinked_foreign_new,
             (
+                self.__class__,
                 {
-                    key.target:
-                        getattr(self, key.target)
+                    key.target: getattr(self, key.target)
                     for key in
                     self.__class__.primary_key
                 }
                 if isinstance(self.__class__.primary_key, tuple) else
                 {
-                    self.__class__.primary_key.target:
-                        getattr(self, self.__class__.primary_key.private_target),
+                    self.__class__.primary_key.target: getattr(self, self.__class__.primary_key.private_target),
                 },
             ),
             self.__dict__,
