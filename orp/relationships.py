@@ -6,7 +6,11 @@ from abc import ABCMeta, abstractmethod
 T = t.TypeVar('T')
 
 
-class Relationship(t.Generic[T], metaclass=ABCMeta):
+def _create_new(cls):
+    return cls.__new__(cls)
+
+
+class Relationship(t.Generic[T], metaclass = ABCMeta):
 
     def __init__(self, owner, target_field: str):
         self._owner = owner
@@ -28,12 +32,8 @@ class Relationship(t.Generic[T], metaclass=ABCMeta):
     def disjoint_with(self, one: T) -> None:
         pass
 
-    @classmethod
-    def _create_new(cls):
-        return super().__new__(cls)
-
     def __reduce__(self) -> tuple:
-        return self._create_new, (), self.__dict__
+        return _create_new, (self.__class__,), self.__dict__
 
 
 class Many(Relationship, t.AbstractSet[T]):
