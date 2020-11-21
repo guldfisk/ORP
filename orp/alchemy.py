@@ -3,6 +3,7 @@ from sqlalchemy.orm import session
 
 class ScopedSessionContainer(object):
     scoped_session = None
+    _sessions = session._sessions
 
 
 def _state_session(state):
@@ -10,7 +11,7 @@ def _state_session(state):
         return ScopedSessionContainer.scoped_session()
     if state.session_id:
         try:
-            return session._sessions[state.session_id]
+            return ScopedSessionContainer._sessions[state.session_id]
         except KeyError:
             pass
     return None
