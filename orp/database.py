@@ -112,25 +112,6 @@ class PickleDatabase(OrpDatabase[M]):
         self._tables = tables
         self._created_at = datetime.datetime.now() if created_at is None else created_at
 
-        # hasher = hashlib.sha256()
-        # for model_type_name, table in sorted(
-        #     (
-        #         (model_type.__name__, table)
-        #         for model_type, table in
-        #         tables.items()
-        #     )
-        # ):
-        #     hasher.update(
-        #         pickle.dumps(
-        #             (
-        #                 model_type_name,
-        #                 sorted(table.keys()),
-        #             )
-        #         )
-        #     )
-        #
-        # self._checksum = hasher.digest()
-
         self._checksum = self.calc_checksum()
 
     @property

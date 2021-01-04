@@ -17,6 +17,8 @@ def _state_session(state):
     return None
 
 
-def patch_alchemy():
+def patch_alchemy(scoped_session = None):
     session._state_session.__code__ = _state_session.__code__
     session.ScopedSessionContainer = ScopedSessionContainer
+    if scoped_session is not None:
+        ScopedSessionContainer.scoped_session = scoped_session
