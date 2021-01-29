@@ -27,6 +27,12 @@ class OrpTable(t.Generic[K, O]):
     def __contains__(self, item: K) -> bool:
         pass
 
+    def get(self, key: K, default: t.Optional[O] = None) -> t.Optional[O]:
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
     @abstractmethod
     def items(self) -> t.Iterator[t.Tuple[K, O]]:
         pass
