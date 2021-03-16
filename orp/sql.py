@@ -1,7 +1,7 @@
 import datetime
 import typing as t
 
-from sqlalchemy import MetaData, Table, Column, DateTime, Integer, Binary, select
+from sqlalchemy import MetaData, Table, Column, DateTime, Integer, LargeBinary, select
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
@@ -48,7 +48,7 @@ meta_info = Table(
     metadata,
     Column('version', Integer, primary_key = True),
     Column('created_at', DateTime),
-    Column('checksum', Binary(256)),
+    Column('checksum', LargeBinary(256)),
 )
 
 
