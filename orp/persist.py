@@ -1,7 +1,6 @@
+import copyreg
 import pickle
 import types
-import copyreg
-
 from abc import ABCMeta, abstractmethod
 
 
@@ -13,23 +12,24 @@ except ImportError:
 if cPickle is None or cPickle.PicklingError is pickle.PicklingError:
     _UniversalPicklingError = pickle.PicklingError
 else:
+
     class _UniversalPicklingError(pickle.PicklingError, cPickle.PicklingError):
         pass
 
 
 def named_any(name):
     if not name:
-        raise Exception('Empty module name')
+        raise Exception("Empty module name")
 
-    names = name.split('.')
+    names = name.split(".")
 
-    if '' in names:
-        raise Exception('invalid path')
+    if "" in names:
+        raise Exception("invalid path")
 
     top_level_package = None
     module_names = names[:]
     while not top_level_package:
-        trial_name = '.'.join(module_names)
+        trial_name = ".".join(module_names)
         top_level_package = __import__(trial_name)
 
     obj = top_level_package
@@ -46,7 +46,7 @@ def pickle_method(method):
             method.__name__,
             method.__self__,
             method.__self__.__class__,
-        )
+        ),
     )
 
 
@@ -71,20 +71,16 @@ def unpickle_method(im_name, im_self, im_class):
 
 
 def pickle_function(f):
-    if f.__name__ == '<lambda>':
+    if f.__name__ == "<lambda>":
         raise _UniversalPicklingError("Cannot pickle lambda function: {}".format(f))
-    return (
-        _unpickle_function,
-        tuple([".".join([f.__module__, f.__qualname__])])
-    )
+    return (_unpickle_function, tuple([".".join([f.__module__, f.__qualname__])]))
 
 
 def _unpickle_function(fully_qualified_name):
     return named_any(fully_qualified_name)
 
 
-class Persistor(metaclass = ABCMeta):
-
+class Persistor(metaclass=ABCMeta):
     @abstractmethod
     def save(self, obj):
         pass
@@ -95,7 +91,6 @@ class Persistor(metaclass = ABCMeta):
 
 
 class PicklePersistor(Persistor):
-
     def __init__(self, path: str):
         self.path = path
 
@@ -103,9 +98,9 @@ class PicklePersistor(Persistor):
         copyreg.pickle(types.MethodType, pickle_method, unpickle_method)
         copyreg.pickle(types.FunctionType, pickle_function, _unpickle_function)
 
-        with open(self.path, 'wb') as f:
+        with open(self.path, "wb") as f:
             pickle.dump(obj, f)
 
     def load(self):
-        with open(self.path, 'rb') as f:
+        with open(self.path, "rb") as f:
             return pickle.load(f)

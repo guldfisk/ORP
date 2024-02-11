@@ -1,17 +1,15 @@
 import typing as t
-
 from abc import ABCMeta, abstractmethod
 
 
-T = t.TypeVar('T')
+T = t.TypeVar("T")
 
 
 def _create_new(cls):
     return cls.__new__(cls)
 
 
-class Relationship(t.Generic[T], metaclass = ABCMeta):
-
+class Relationship(t.Generic[T], metaclass=ABCMeta):
     def __init__(self, owner, target_field: str):
         self._owner = owner
         self.target_field = target_field
@@ -37,7 +35,6 @@ class Relationship(t.Generic[T], metaclass = ABCMeta):
 
 
 class Many(Relationship, t.AbstractSet[T]):
-
     def __init__(self, owner, target_field: str):
         super().__init__(owner, target_field)
         self._many: t.Set[T] = set()
@@ -83,7 +80,6 @@ class Many(Relationship, t.AbstractSet[T]):
 
 
 class ListMany(Relationship, t.List[T]):
-
     def __init__(self, owner, target_field: str):
         super().__init__(owner, target_field)
         self._many: t.List[T] = []
@@ -127,7 +123,6 @@ class ListMany(Relationship, t.List[T]):
 
 
 class One(Relationship, t.Generic[T]):
-
     def __init__(self, owner, target_field: str, initial_value: T = None):
         super().__init__(owner, target_field)
         self._one = None
@@ -142,7 +137,7 @@ class One(Relationship, t.Generic[T]):
     def disjoint_with(self, many: T):
         self._one = None
 
-    def set(self, many: T, ignore_previous_value = False):
+    def set(self, many: T, ignore_previous_value=False):
         if self._one is not None and not ignore_previous_value:
             getattr(self.from_owner(self._one), self.target_field).disjoint_with(self.owner)
 
@@ -153,7 +148,6 @@ class One(Relationship, t.Generic[T]):
 
 
 class OneDescriptor(t.Generic[T]):
-
     def __init__(self, field: str):
         self.field = field
 

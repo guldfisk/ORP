@@ -7,7 +7,7 @@ class ScopedSessionContainer(object):
 
 
 def _state_session(state):
-    if state.obj() and getattr(state.obj(), 'always_use_scoped_session', False):
+    if state.obj() and getattr(state.obj(), "always_use_scoped_session", False):
         return ScopedSessionContainer.scoped_session()
     if state.session_id:
         try:
@@ -17,7 +17,7 @@ def _state_session(state):
     return None
 
 
-def patch_alchemy(scoped_session = None):
+def patch_alchemy(scoped_session=None):
     session._state_session.__code__ = _state_session.__code__
     session.ScopedSessionContainer = ScopedSessionContainer
     if scoped_session is not None:

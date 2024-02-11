@@ -8,7 +8,6 @@ from orp import relationships as _relationships
 
 
 class Incrementer(object):
-
     def __init__(self, initial_value: int = 0):
         self.value = initial_value
 
@@ -19,7 +18,6 @@ class Incrementer(object):
 
 
 class Key(object):
-
     def __init__(
         self,
         target: str,
@@ -36,19 +34,20 @@ class Key(object):
 
     @property
     def private_target(self):
-        return '_' + self._target
+        return "_" + self._target
 
     def __repr__(self):
         return self._target
 
 
 class PrimaryKey(object):
-
     def __init__(self, keys: t.Union[t.Tuple[t.Union[Key, str], ...], Key, str]):
         self.key = (
             tuple(item if isinstance(item, Key) else Key(item) for item in keys)
-            if isinstance(keys, tuple) else
-            keys if isinstance(keys, Key) else Key(keys)
+            if isinstance(keys, tuple)
+            else keys
+            if isinstance(keys, Key)
+            else Key(keys)
         )
 
     def __get__(self, instance, owner):
@@ -56,15 +55,12 @@ class PrimaryKey(object):
             return self.key
 
         if isinstance(self.key, tuple):
-            return tuple(
-                getattr(instance, key.target) for key in self.key
-            )
+            return tuple(getattr(instance, key.target) for key in self.key)
 
         return getattr(instance, self.key.target)
 
 
 class ForeignKey(Key):
-
     def __init__(self, target: str, foreign_target: str):
         super().__init__(target)
         self._foreign_target = foreign_target
@@ -80,7 +76,6 @@ class ForeignKey(Key):
 
 
 class ForeignOne(ForeignKey):
-
     @property
     def relationship(self):
         return _relationships.One
@@ -88,11 +83,7 @@ class ForeignOne(ForeignKey):
 
 def _unlinked_foreign_new(cls, key_map):
     obj = object.__new__(cls)
-    keys = (
-        cls.primary_key
-        if isinstance(cls.primary_key, tuple) else
-        (cls.primary_key,)
-    )
+    keys = cls.primary_key if isinstance(cls.primary_key, tuple) else (cls.primary_key,)
 
     for key in keys:
         if isinstance(key, ForeignOne):
@@ -102,7 +93,7 @@ def _unlinked_foreign_new(cls, key_map):
                 key.relationship(
                     obj,
                     key.foreign_target,
-                )
+                ),
             )
             try:
                 getattr(obj, key.private_target).join_with(key_map[key.target])
@@ -119,7 +110,6 @@ def _unlinked_foreign_new(cls, key_map):
 
 
 class OrpBase(object):
-
     @property
     @abstractmethod
     def primary_key(self) -> t.Union[str, int]:
@@ -129,31 +119,22 @@ class OrpBase(object):
         return hash(self.primary_key)
 
     def __eq__(self, other):
-        return (
-            isinstance(other, self.__class__)
-            and self.primary_key == other.primary_key
-        )
+        return isinstance(other, self.__class__) and self.primary_key == other.primary_key
 
 
 class Model(OrpBase):
     primary_key = PrimaryKey(
-        Key('id', calc_value = lambda k, o, m: o._INCREMENTER()),
+        Key("id", calc_value=lambda k, o, m: o._INCREMENTER()),
     )
     _INCREMENTER = Incrementer()
 
     def __new__(cls, *args, **kwargs):
-        keys = (
-            cls.primary_key
-            if isinstance(cls.primary_key, tuple) else
-            (cls.primary_key,)
-        )
+        keys = cls.primary_key if isinstance(cls.primary_key, tuple) else (cls.primary_key,)
 
         for key, arg in zip(
             chain(
                 *(
-                    (filtered_key.target,)
-                    if filtered_key.input_values is None else
-                    filtered_key.input_values
+                    (filtered_key.target,) if filtered_key.input_values is None else filtered_key.input_values
                     for filtered_key in keys
                     if filtered_key.calc_value is None or filtered_key.input_values is not None
                 )
@@ -169,40 +150,33 @@ class Model(OrpBase):
                 try:
                     getattr(obj, key.private_target).set(
                         kwargs[key.target],
-                        ignore_previous_value = True,
+                        ignore_previous_value=True,
                     )
                 except KeyError:
                     getattr(obj, key.private_target).set(
                         key.calc_value(key, obj, kwargs),
-                        ignore_previous_value = True,
+                        ignore_previous_value=True,
                     )
 
         return obj
 
     def __eq__(self, other):
-        return (
-            isinstance(other, self.__class__)
-            and self.primary_key == other.primary_key
-        )
+        return isinstance(other, self.__class__) and self.primary_key == other.primary_key
 
     def __hash__(self):
         return hash(self.primary_key)
 
     def __repr__(self):
-        return f'{self.__class__.__name__}({self.primary_key})'
+        return f"{self.__class__.__name__}({self.primary_key})"
 
     def __reduce__(self):
         return (
             _unlinked_foreign_new,
             (
                 self.__class__,
-                {
-                    key.target: getattr(self, key.target)
-                    for key in
-                    self.__class__.primary_key
-                }
-                if isinstance(self.__class__.primary_key, tuple) else
-                {
+                {key.target: getattr(self, key.target) for key in self.__class__.primary_key}
+                if isinstance(self.__class__.primary_key, tuple)
+                else {
                     self.__class__.primary_key.target: getattr(self, self.__class__.primary_key.private_target),
                 },
             ),
