@@ -14,7 +14,6 @@ name = "orp"
 version = "0.1.0"
 description = ""
 authors = ["None"]
-readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "~3.9"
