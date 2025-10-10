@@ -66,7 +66,7 @@ class OrpDatabase(t.Generic[B]):
                 if isinstance(k, str):
                     hasher.update(k.encode("utf-8"))
                 else:
-                    hasher.update(k.to_bytes(4, "big"))
+                    hasher.update(k.to_bytes(8, "big"))
 
         return hasher.digest()
 
